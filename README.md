@@ -1,70 +1,243 @@
-# Getting Started with Create React App
+# react-app-rewired 使用
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+create-creact-app 项目，如果需要手动修改配置，需先 npm run eject 弹出配置，这个过程是不可逆的，所以推荐使用第三方工具去修改。
 
-## Available Scripts
+react-app-rewired 的作用是用来帮助你重写 react 脚手架配置
 
-In the project directory, you can run:
+react-app-rewired@2.x版本需要搭配customize-cra使用。
 
-### `npm start`
+customize-cra的作用是帮助你自定义 react 脚手架 2.x 版本配置
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+###  基本使用
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+安装：
 
-### `npm test`
+```shell 
+npm i react-app-rewired customize-cra --save-dev
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+在根目录下新建文件config-overrides.js文件
 
-### `npm run build`
+```javascript
+module.exports = function override(config, env) {
+  // do stuff with the webpack config...
+  return config
+}
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+修改 package.json 文件
+```json
+{
+  // ...
+  "scripts": {
+    "start": "react-app-rewired start",
+    "build": "react-app-rewired build",
+    "test": "react-app-rewired test",
+    "eject": "react-scripts eject"
+  },
+  // ...
+}
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### 使用 Less
 
-### `npm run eject`
+安装 less 和 less-loader：
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```shell 
+npm i less less-loader --save-dev
+```
+### 修改 config-overrides.js 文件
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```javascript
+const {
+  override,
+  // ...
+  addLessLoader,
+  // ...
+} = require('customize-cra')
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+module.exports = override(
+  // ...
+  // less
+  // addLessLoader(),
+  addLessLoader({
+    lessOptions: {
+      javascriptEnabled: true,
+      // Optionally adjust URLs to be relative. When false, URLs are already relative to the entry less file.
+      relativeUrls: false,
+      modifyVars: { '@primary-color': '#A80000' },
+      // cssModules: {
+      //   // if you use CSS Modules, and custom `localIdentName`, default is '[local]--[hash:base64:5]'.
+      //   localIdentName: "[path][name]__[local]--[hash:base64:5]",
+      // }
+    }
+  })
+  // ...
+)
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### 配置打包输出目录
 
-## Learn More
+```javascript
+/* eslint-disable no-param-reassign */
+const path = require('path');
+const fs = require('fs');
+const webpack = require('webpack');
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+const { override, addLessLoader } = require('customize-cra');
+const { aliasDangerous, configPaths } = require('react-app-rewire-alias/lib/aliasDangerous');
+const paths = require('react-scripts/config/paths');
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+const processDefine = Object.entries(process.env).reduce(
+  (res, [key, value]) => ({
+    ...res,
+    [`process.env.${key}`]: JSON.stringify(value),
+  }),
+  {},
+);
 
-### Code Splitting
+module.exports = {
+  webpack: override(
+    // removeModuleScopePlugin(), // 为了导入根目录的common，cra默认只能导入src下的文件
+    // addWebpackAlias({
+    //   '@common': path.resolve(__dirname, '../common'),
+    //   '@environment': path.resolve(__dirname, './src/enviroment'),
+    // }),
+    addLessLoader({
+      lessOptions: {
+        javascriptEnabled: true,
+      },
+    }),
+    (config, env) => {
+      // 配置打包目录输出到 ../dist/public 目录中
+      paths.appBuild = path.join(__dirname, '../dist/public');
+      config.output.path = paths.appBuild;
+      config.output.publicPath = './';
+      config.plugins.push(new webpack.DefinePlugin(processDefine));
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+      // NOTE: 解决 create-react-app imports restriction outside of src directory 的限制
+      aliasDangerous(configPaths('tsconfig.paths.json'))(config);
 
-### Analyzing the Bundle Size
+      return config;
+    },
+  ),
+};
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### 添加别名
 
-### Making a Progressive Web App
+修改 config-overrides.js 文件
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+```javascript
+const {
+  override,
+  // ...
+  addWebpackAlias
+} = require('customize-cra')
+const path = require('path')
 
-### Advanced Configuration
+module.exports = override(
+  // ...
+  // 路径别名
+  addWebpackAlias({
+    '@': path.resolve(__dirname, 'src')
+  })
+)
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+### 配置多环境
 
-### Deployment
+安装 dotenv-cli：
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+```shell
+npm i dotenv-cli --save-dev
+```
 
-### `npm run build` fails to minify
+在根目录下添加.env.dev 文件
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+```conf
+REACT_APP_URL_API=http://dev.com
+REACT_APP_URL_UPLOAD=http://upload.dev.com
+```
+
+在根目录下添加.env.prod 文件
+```conf
+REACT_APP_URL_API=http://prod.com
+REACT_APP_URL_UPLOAD=http://upload.prod.com
+```
+
+修改 package.json 文件
+```json
+{
+  // ...
+  "scripts": {
+    "start": "dotenv -e .env.dev react-app-rewired start",
+    "build:prod": "dotenv -e .env.prod react-app-rewired build",
+    "test": "react-app-rewired test",
+    "eject": "react-scripts eject"
+  },
+  // ...
+}
+```
+
+在 index.html 中使用%REACT_APP_URL_API%
+
+在 js/jsx 中：process.env.REACT_APP_URL_API
+
+
+### proxy
+
+开发环境下跨域问题，前端一般是给本地的 devServer 设置代理
+
+安装 http-proxy-middleware：
+
+```shell 
+npm i http-proxy-middleware --save-dev
+```
+
+在 src/目录下新建文件 setupProxy.js（注意：文件名不能修改！！cra 会按照 src/setupProxy.js 这个路径解析）
+
+```javascript
+const proxy = require('http-proxy-middleware')
+
+module.exports = function(app) {
+  app.use(
+    proxy('/api', {
+      target: 'http://localhost:3001/',
+      changeOrigin: true,
+      // pathRewrite: {
+      //   '^/api': ''
+      // }
+    })
+  )
+}
+```
+
+重新启动即可
+
+http-proxy-middleware 的 1.x 版本做了较大改动。
+
+以上方法配置会出现 proxy is not a function 的问题
+
+解决办法是修改 src/setupProxy.js 文件
+
+```javascript
+const { createProxyMiddleware } = require('http-proxy-middleware');
+
+module.exports = function(app) {
+  app.use(createProxyMiddleware('/api', {
+    target: 'http://localhost:3001/',
+    changeOrigin: true,
+    // pathRewrite: {
+    //   '^/api': ''
+    // }
+  }))
+```
+
+
+### 参考资料
+
+https://www.jianshu.com/p/352e33c56d55
+
+http://wmm66.com/index/article/detail/id/165.html
