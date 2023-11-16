@@ -2,14 +2,13 @@ import { useState } from "react";
 import Pitch from "../../comps/Pitch"; 
 import CountDown from "../../comps/Countdown";
 import TrainIntro from "../../comps/TrainIntro";
-import Settings from "../../comps/Settings";
+import Settings from "./Settings";
 import String from "../../comps/String";
 import data from "../../data/data";
 import storageUtil from "../../utils/storageUtil";
+import cache from './cache';
 import './index.less';
 import {Button, Form, Input, Slider, Checkbox} from 'antd-mobile';
-// Import your audio file
-import audioC from "../../static/audio/C.mp3";
 
 /**
  * 训练1
@@ -17,8 +16,6 @@ import audioC from "../../static/audio/C.mp3";
  * @returns 
  */
 const App = (props) => {
-
-    const timeout = 2500;
 
     //是否开始倒计时
     const [isCountdown, setCountdown] = useState(false);
@@ -29,65 +26,74 @@ const App = (props) => {
     //序号
     const [seq, setSeq] = useState(0);
     //用于显示的数值
-    const [val, setVal] = useState('');
+    const [patchVal, setPatchVal] = useState('');
     const [stringVal, setStringVal] = useState(1);
+    //定时器对象
     const [timer, setTimer] = useState('');
 
     //是否打开设置
     const [settingsVisible, setSettingsVisible] = useState(false);
 
-    // let stringsOptions = [data.stringsOptions[0].value];
-    // let typeOptions = [data.typeOptions[0].value];
-    // let speedOptions = [data.speedOptions[0].value];
+    var  {stringsOptions, typeOptions, difficultyOptions, cachedCustomSpeed} = cache.loadConfig();
+    // var speed = cache.getSpeedByDifficultyOptValue(difficultyOptions);
 
+    const speed = !cache.isDifficultyCustom(difficultyOptions[0])? cache.getSpeedByDifficultyOptValue(difficultyOptions[0]): cachedCustomSpeed;
+    // console.log("=====config===", speed, difficultyOptions);
+
+    const timeout = speed*1000;
+    console.log("=====config===", speed, timeout, difficultyOptions);
+
+    let pitchValArray = [];
+    if(typeOptions.includes(data.typeOptions[0].value)){
+        //全音
+        pitchValArray.push(...data.pitchArray0);
+    }
+    if(typeOptions.includes(data.typeOptions[1].value)){
+        //半音
+        pitchValArray.push(...data.pitchArray1);
+    }
     
+
 
     /** 训练 */
     const genCase = ()=>{
+
+        // console.log('=====genCase');
         setGo(true);
         setSeq((seq) => seq + 1);
-        // const audio = new Audio(audioC);
-        // audio.loop=false;
-        // audio.play();
-            
-        const storageKey = "data_train_1";
-        const cachedResult = storageUtil.getItem(storageKey); 
-        const stringsOptions = cachedResult && cachedResult.stringsOptions?cachedResult.stringsOptions:[data.stringsOptions[0].value];
-        const typeOptions = cachedResult && cachedResult.typeOptions?cachedResult.typeOptions:[data.typeOptions[0].value];
-        const speedOptions = cachedResult && cachedResult.speedOptions?cachedResult.speedOptions:[data.speedOptions[0].value];
+        // const storageKey = "data_train_1";
+        // const cachedResult = storageUtil.getItem(storageKey);
+        // const stringsOptions = cachedResult && cachedResult.stringsOptions?cachedResult.stringsOptions:[data.stringsOptions[0].value];
+        // const typeOptions = cachedResult && cachedResult.typeOptions?cachedResult.typeOptions:[data.typeOptions[0].value];
+        // const difficultyOptions = cachedResult && cachedResult.diff?cachedResult.difficultyOptions:[data.difficultyOptions[0].value];
         
-        let valArray = [];
-        if(typeOptions.includes(data.typeOptions[0].value)){
-            valArray.push(...data.pitchArray0);
-        }
-        if(typeOptions.includes(data.typeOptions[1].value)){
-            valArray.push(...data.pitchArray1);
-        }
-        
-        const ranIndex = Math.floor(Math.random()*valArray.length);
-        // console.log("=======", ranIndex, typeOptions);
-        // console.log("====1===", valArray);
-        // console.log("====2===", valArray[ranIndex]);
-        setVal(valArray[ranIndex]);
 
-        // const strings = data.stringsOptions.map((item)=>item.value);
-        // console.log("====1===", strings);
+        
+        //随机产生音阶
+        const ranIndex = Math.floor(Math.random()*pitchValArray.length);
+        setPatchVal(pitchValArray[ranIndex]);
+
+        //随机产生音阶
         const ranStringIndex = Math.floor(Math.random()* (stringsOptions.length));
-        console.log("===stringsOptions====", ranStringIndex, stringsOptions);
         data.stringsOptions.forEach((item)=>{
             if(item.value===stringsOptions[ranStringIndex]){
-                
                 setStringVal(item.value+1);
             }
         })
     }
 
+    /**
+     * 
+     */
     const startTimer = () => {
         setTimer(setInterval(() => {
             genCase();
         }, timeout));
     }
 
+    /**
+     * 
+     */
     const stopTimer = () => {
         if (timer) {
             clearInterval(timer);
@@ -103,14 +109,8 @@ const App = (props) => {
             //当前已开始
             stopTimer(timer);
         } else {
-
-            // console.log("typeOptions", typeOptions);
-            //当前未开始，TODO 先进入倒计时
+            //当前未开始，先进入倒计时
             setCountdown(true);
-
-            //倒计时结束后，再开始
-            // genCase();
-            // startTimer();
         }
         setStarted(!started);
     }
@@ -159,12 +159,10 @@ const App = (props) => {
             <div className='stage_container'>
                 {isCountdown?<CountDown max='3' onFinish={countdownFinish}/>:null}
                 {isGo?<div>
-                    {/* <div>
-                        序号：{seq}
-                    </div> */}
+                    <div>序号：{seq}</div>
                     <div>
                         <String value={stringVal}></String>
-                        <Pitch name={val}></Pitch>
+                        <Pitch name={patchVal} audioEnable={true}></Pitch>
                     </div>
                 </div>:null}
             </div>

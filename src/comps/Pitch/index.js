@@ -1,42 +1,53 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import './index.less';
+import data from '../../data/data';
+import audios from '../../data/audio';
 
-const App = (props)=>{
 
-    // const [pitch, setPitch] = useState('');
-    // const [lifting, setLifting] = useState('');
+/**
+ * 音符组件
+ * @param {*} param0 
+ * @returns 
+ */
+const App = ({name, audioEnable=true})=>{
+    console.log(name, audioEnable);
+    if(audioEnable){
+        const audio = new Audio(data.audios[name]);
+        audio.currentTime=0;
+        audio.play();
+    }
 
-    // const {name} = props;
-    // console.log("props", name, props);
+    useEffect(()=>{
+        console.log('mount');
+    }, []);
 
-    // let varLifting = '';
-    // let varPitch = name;
-    // if(name.length>1){
-    //     varLifting = name.subStr(0, name.length-1);
-    //     varPitch = name.subStr(name.length-1, name.length);
+    // lifting = name.substring(0, name.length-1);
 
-    //     console.log("varLifting, varPitch", varLifting, varPitch);
-    //     setPitch(varPitch);
-    // }
+    const [lifting, setLifting] = useState('');
+    const [pitch, setPitch] = useState('');
 
-    const parsePitch = () =>{
-        const {name} = props;
+    if(name.length>1){
+        // setLifting(name.substring(0, name.length-1));
+        // setPitch(name.substring(name.length-1, name.length));
+        let xxx = name.substring(0, name.length-1);
+        let yyy = name.substring(name.length-1, name.length);
+    }
 
-        console.log("name", name);
-        
-        let lifting = '';
-        let pitch = name;
-        if(name.length>1){
-            lifting = name.substring(0, name.length-1);
-            pitch = name.substring(name.length-1, name.length);
-        }
-        return {lifting: lifting, pitch: pitch};
-    };
+    // const parsePitch = () =>{
+    //     let lifting = '';
+    //     let pitch = name;
+    //     if(name.length>1){
+    //         lifting = name.substring(0, name.length-1);
+    //         pitch = name.substring(name.length-1, name.length);
+    //     }
+    //     return {lifting: lifting, pitch: pitch};
+    // };
 
     return <div className="pitch-wrapper">
-        {/* <span className="string">1弦</span><br/> */}
-        <span className="lifting">{parsePitch().lifting}</span>
-        <span className="pitch">{parsePitch().pitch}</span>
+        <span className="pitch">{name}</span>
+
+        {/* <span className="lifting">{lifting}</span>
+        <span className="pitch">{pitch}</span> */}
     </div>
 }
 

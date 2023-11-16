@@ -8,7 +8,7 @@ import Train1 from './views/Train1';
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   // <React.StrictMode>
-    <Train1/>
+    <Train1></Train1>
     // <App />
     
   // </React.StrictMode>

@@ -3,10 +3,10 @@ import './index.less';
 
 /**
  * 倒计时
- * @param {*} props 
+ * @param {*} param0 
  * @returns 
  */
-const App = ({max=3, min=0, onFinish})=>{
+const App = ({min=0, max=3, interval=1000, readyText='READY?', goText='GO!', onFinish})=>{
 
     const [countNum, setCountNum] = useState(max);
 
@@ -20,15 +20,15 @@ const App = ({max=3, min=0, onFinish})=>{
                 countdownVal = countdownVal-1;
             }
             setCountNum(countdownVal);
-        }, 1000);
+        }, interval);
     }, []);
 
 
     const displayCountTitle = (val)=>{
-        return val===min?null:'READY?';
+        return val===min?null:readyText;
     }
     const displayCountNum = (val)=>{
-        return val===min?"GO!":val;
+        return val===min?goText:val;
     }
 
     return <div className='countdown-wrapper'>

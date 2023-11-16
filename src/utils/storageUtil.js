@@ -2,6 +2,15 @@
 
 const result = {
 
+    /**
+     * 构造存储的key
+     * @param {*} stageNo 
+     * @param {*} subStageNo 子
+     */
+    getStorageKey: (stageNo)=>{
+        return "train_data_"+ stageNo;
+    },
+
     getItem: (key, defaultVal)=>{
         const result = window.localStorage.getItem(key);
         if(!result){
